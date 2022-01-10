@@ -7,17 +7,17 @@
 :global PAESE "IT"
 :global STATO "Italy"
 :global LOC "Città"
-:global ORG "DOT"
+:global ORG "Organizzazione"
 :global OU ""
 :global KEYSIZE "2048"
 :global PORTA "2005"
-:global RANGE "192.168.68.10-192.168.68.25"
-:global OVPNGW "192.168.68.1"
-:global OVPNDNS "192.168.68.1"
+:global RANGE "10.10.55.10-10.10.55.25"
+:global OVPNGW "10.10.55.1"
+:global OVPNDNS "10.10.55.1"
 :global PROTO "tcp"
 :global CN [/system identity get name]
-:global USERNAME "username vpn profile"
-:global PASSWORD "password vpn profile"
+:global USERNAME "username"
+:global PASSWORD "password"
 
 ## Aspetto per evitare di bloccare le rb più scarse
 :global waitSec do={:return ($KEYSIZE * 10 / 1024)}
