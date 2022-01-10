@@ -1,8 +1,9 @@
 :global DNS "10.10.60.1"
 :global L2GW "10.10.60.1"
 :global POOL "10.10.60.100-10.10.60.110"
-:global USER "dot"
-:global PSWD "MyPassword"
+:global USER "user"
+:global PSWD "password"
+:global PSK "presharedkey"
 
 #Creo il Pool
 /ip pool
@@ -14,7 +15,7 @@ add dns-server=$DNS local-address=$L2GW name=L2TP-PROFILE only-one=no remote-add
 
 #Creo il Server L2TP
 /interface l2tp-server server
-set default-profile=L2TP-PROFILE enabled=yes use-ipsec=required
+set default-profile=L2TP-PROFILE enabled=yes use-ipsec=required ipsec-secret=$PSK
 
 #Aggiungo il Secret
 /ppp secret
@@ -28,3 +29,4 @@ add action=accept chain=input comment="L2TP IN" dst-port=1701 protocol=udp
 add action=reject chain=input comment="DENY L2TP W/OUT IPSEC" dst-port=1701 ipsec-policy=in,none protocol=udp reject-with=icmp-admin-prohibited
 /
 /beep
+/
