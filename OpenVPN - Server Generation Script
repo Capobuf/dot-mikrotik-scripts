@@ -3,24 +3,22 @@
 
 # Inizio a creare la CA e i Certificati per Server e Client
 
-:global CN [/system identity get name]
-:global PAESE "IT"
-:global STATO "Italy"
-:global LOC "Città"
-:global ORG "Organizzazione"
-:global OU ""
-:global KEYSIZE "2048"
-:global PORTA "2005"
-:global RANGE "10.10.55.10-10.10.55.25"
-:global OVPNGW "10.10.55.1"
-:global OVPNDNS "10.10.55.1"
-:global PROTO "tcp"
-:global CN [/system identity get name]
-:global USERNAME "username"
-:global PASSWORD "password"
-
-## Aspetto per evitare di bloccare le rb più scarse
-:global waitSec do={:return ($KEYSIZE * 10 / 1024)}
+:local PAESE "IT"
+:local STATO "Italy"
+:local LOC "Termoli"
+:local ORG "Rock Inc SRL"
+:local OU "IT"
+:local KEYSIZE "2048"
+:local PORTA "2005"
+:local RANGE "10.100.55.10-10.100.55.25"
+:local OVPNGW "10.100.55.1"
+:local OVPNDNS "10.100.55.1"
+:local ONLYON "no"
+:local PROTO "udp"
+#:global CN [/system identity get name]
+:global CN "HOSTNAME"
+:local USERNAME "username"
+:local PASSWORD "password"
 
 ## Genero la CA
 /certificate
@@ -28,7 +26,7 @@ add name=ca-template country="$PAESE" state="$STATO" locality="$LOC" \
   organization="$ORG" unit="$OU" common-name="$CN" key-size="$KEYSIZE" \
   days-valid=3650 key-usage=crl-sign,key-cert-sign
 sign ca-template ca-crl-host=127.0.0.1 name="$CN"
-:delay [$waitSec]
+:delay 4s
 
 ## Genero il Certificato Server
 /certificate
@@ -36,13 +34,14 @@ add name=server-template country="$PAESE" state="$STATO" locality="$LOC" \
   organization="$ORG" unit="$OU" common-name="server@$CN" key-size="$KEYSIZE" \
   days-valid=3650 key-usage=digital-signature,key-encipherment,tls-server
 sign server-template ca="$CN" name="server@$CN"
-:delay [$waitSec]
+:delay 4s
 
 ## Genero il Template per il Client
 /certificate
 add name=client-template country="$PAESE" state="$STATO" locality="$LOC" \
   organization="$ORG" unit="$OU" common-name="client" \
   key-size="$KEYSIZE" days-valid=3650 key-usage=tls-client
+:delay 4s
 
 ## Creo il Range di IP per il Pool OVPN
 /ip pool add name=OVPN-Pool ranges=$RANGE
@@ -50,34 +49,30 @@ add name=client-template country="$PAESE" state="$STATO" locality="$LOC" \
 ## Creo il Profilo PPP
 /ppp profile
 add dns-server=$OVPNDNS local-address=$OVPNGW name=OVPN-Profile \
-  remote-address=OVPN-Pool use-encryption=yes only-one=yes
+  remote-address=OVPN-Pool use-encryption=yes only-one=$ONLYON
 
 ## Configuro il Server OpenVPN
 /interface ovpn-server server
-set auth=sha1 certificate="server@$CN" cipher=aes128,aes192,aes256 \
-  default-profile=OVPN-Profile enabled=yes keepalive-timeout=60 \
-  mac-address=00:00:00:00:00:00 max-mtu=1450 port="$PORTA" \
+set auth=sha1 certificate="server@$CN" cipher=aes128-cbc,aes192-gcm,aes256-gcm \
+  default-profile=OVPN-Profile enabled=yes keepalive-timeout=7200 \
+  mac-address=00:00:00:00:00:00 max-mtu=1500 port="$PORTA" \
   require-client-certificate=yes
-
-## add a firewall rule
-/ip firewall filter
-add chain=input dst-port="$PORTA" protocol=$PROTO comment="OpenVPN $PROTO IN"
-
 
 # Genero gli Utenti e i loro Certificati
 # Per evitare errori nell'esportazione, inserisci una password +8 char
 /ppp secret
 add name=$USERNAME password=$PASSWORD profile=OVPN-Profile service=ovpn
+:delay 2s
 
 ## Genero il Certificato per il Client
 /certificate
 add name=client-template-to-issue copy-from="client-template" \
-  common-name="$USERNAME@$CN"
+  common-name="client-$USERNAME@$CN"
 sign client-template-to-issue ca="$CN" name="$USERNAME@$CN"
-:delay 20
+:delay 2s
 
 ## Esporto CA, Certificato Client e Key
 /certificate
-export-certificate "$CN" export-passphrase=""
-export-certificate "$USERNAME@$CN" export-passphrase="$PASSWORD"
+export-certificate "$CN" export-passphrase="" file-name="CA"
+export-certificate "$USERNAME@$CN" export-passphrase="$PASSWORD" file-name=user
 /
