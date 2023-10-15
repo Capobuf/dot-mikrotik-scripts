@@ -1,5 +1,5 @@
 :do {
-    :local requestvalue do={:put $1 ; :return}
+    :global requestvalue do={:put $1 ; :return}
 
     :log info "[firewall-config] Script Avviato"
     # Chiedo se voglio resettare la RB
@@ -159,15 +159,16 @@
     /ip firewall filter add action=accept chain=input comment="Consento Enst. e Releated" connection-state=established,related
     
     ### SE METTO NO SCRIVE COMUNQUE DA FIXARE
-    :local yesL2TP [$requestvalue "Inserisco la Regola in INPUT per L2TP/IPSEC? (y/n)"]
-    :if ((yesL2TP=y) || (yesL2TP=yes)) do={
+    :global yesL2TP;
+    :set yesL2TP [$requestvalue "Inserisco la Regola in INPUT per L2TP/IPSEC? (y/n)"];
+    :if (($yesL2TP="y") || ($yesL2TP="yes")) do={
     /ip firewall filter add action=passthrough chain=forward comment="########## L2TP/IPSEC ##########" disabled=yes
     /ip firewall filter add action=accept chain=input comment="Consento L2TP solo se IPSec" dst-port=1701 ipsec-policy=in,ipsec protocol=tcp
     /ip firewall filter add action=accept chain=input comment="Consento il resto di L2TP/IPSec" dst-port=161,500,4500 protocol=udp
     }
 
     :local yesOpenVPN [$requestvalue "Inserisco la Regola in INPUT per OPENVPN? (y/n)"]
-    :if ((yesOpenVPN=y) || (yesOpenVPN=yes)) do={
+    :if (($yesOpenVPN="y") || ($yesOpenVPN="yes")) do={
         /ip firewall filter add action=passthrough chain=forward comment="########## OpenVPN ##########" disabled=yes
         /ip firewall filter add action=accept chain=input comment="Consento OpenVPN IN" dst-port=2005 protocol=udp log-prefix=OVPN_IN
     }
