@@ -82,6 +82,7 @@ common-name="client-$USERNAME@$CN";
 
 /certificate sign client-template-to-issue \
 ca="$CN" \
+
 name="$USERNAME@$CN";
 
 :delay 100ms;
@@ -154,7 +155,7 @@ client-certificate="$USERNAME@$CN.crt" \
 client-cert-key="$USERNAME@$CN.key" \
 server-address="PUBLIC_IP";
 
-# Rimuovo le Variabili Globali
+## Rimuovo gli environment
 
-/system script environment remove USERNAME,PASSWORD,CN,LOC,OnlyOne,ORG,OU,OVPNDNS,OVPNGW,PORTA,RANGE,SUBNET;
+/system script environment remove [find];
 beep;
