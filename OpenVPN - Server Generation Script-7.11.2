@@ -1,10 +1,5 @@
 # OpenVPN Server Setup Generation Script
 
-
-# Inizio a creare la CA e i Certificati per Server e Client
-
-:global PAESE "IT"
-:global STATO "Italy"
 :global LOC "Campobasso"
 :global ORG "Rock Inc"
 :global OU "IT"
@@ -13,34 +8,35 @@
 :global RANGE "10.100.55.10-10.100.55.25"
 :global OVPNGW "10.100.55.1"
 :global OVPNDNS "10.100.55.1"
-:global ONLYON "no"
-#:global CN [/system identity get name]
-:global CN "HOSTNAME"
-:local USERNAME "username"
-:local PASSWORD "password"
+:global OnlyOne "no"
+:global CN "CBPAGLIA-01"
+:global USERNAME "franco"
+# La Password deve essere di almeno 8 caratteri!
+:global PASSWORD "roccorocco"
 
 ## Genero la CA
 /certificate add \
 name=ca-template\
-country="$PAESE" \
-state="$STATO" \
+country="IT" \
+state="Italy" \
 locality="$LOC" \
 organization="$ORG" \
 unit="$OU" \
 common-name="$CN" \
 days-valid=3650 \
-key-usage=crl-sign,key-cert-sign \
-sign ca-template \ 
+key-usage=crl-sign,key-cert-sign;
+
+/certificate sign ca-template \
 ca-crl-host=127.0.0.1 \
-name="$CN";
+name=$CN;
 
 :delay 100ms;
 
 ## Genero il Certificato Server
 /certificate add \
 name=server-template \
-country="$PAESE" \
-state="$STATO" \
+country="IT" \
+state="Italy" \
 locality="$LOC" \
 organization="$ORG" \
 unit="$OU" \
@@ -48,15 +44,18 @@ common-name="server@$CN" \
 days-valid=3650 \
 key-usage=digital-signature,key-encipherment,tls-server;
 
-sign server-template ca="$CN" name="server@$CN";
+/certificate sign \
+server-template \
+ca="$CN" \
+name="server@$CN";
 
 :delay 100ms;
 
 ## Genero il Template per il Client
 /certificate add \
 name=client-template \
-country="$PAESE" \
-state="$STATO" \
+country="IT" \
+state="Italy" \
 locality="$LOC" \
 organization="$ORG" \
 unit="$OU" \
@@ -65,6 +64,35 @@ days-valid=3650 \
 key-usage=tls-client;
 
 :delay 100ms;
+
+# Genero gli Utenti e i loro Certificati
+/ppp secret add \
+name="$USERNAME" \
+password="$PASSWORD" \
+profile=OVPN-Profile \
+service=ovpn;
+
+:delay 100ms;
+
+## Genero il Certificato per il Client
+/certificate add \
+name="client-template-to-issue" \
+copy-from="client-template" \
+common-name="client-$USERNAME@$CN";
+
+/certificate sign client-template-to-issue \
+ca="$CN" \
+name="$USERNAME@$CN";
+
+:delay 100ms;
+
+## Esporto CA, Certificato Client e Key
+/certificate export-certificate "$CN" export-passphrase="" file-name="CA";
+
+/certificate \
+export-certificate "$USERNAME@$CN" \
+export-passphrase="$PASSWORD" \
+file-name="$USERNAME@$CN";
 
 ## Creo il Range di IP per il Pool OVPN
 /ip pool add \
@@ -102,13 +130,13 @@ local-address=$OVPNGW \
 name=OVPN-Profile \
 remote-address=OVPN-Pool \
 use-encryption=yes \
-only-one=$ONLYON;
+only-one=$OnlyOne;
 
 ## Configuro il Server OpenVPN
 /interface ovpn-server server set \
-auth=sha1 \
+auth=sha1,sha256 \
 certificate="server@$CN"\
-cipher=aes128-cbc,aes192-gcm,aes256-gcm \
+cipher=aes128-cbc,aes192-gcm,aes256-gcm,aes256-cbc \
 default-profile=OVPN-Profile \
 enabled=yes \
 keepalive-timeout=7200 \
@@ -118,34 +146,15 @@ port="$PORTA" \
 protocol=udp \
 require-client-certificate=yes;
 
-# Genero gli Utenti e i loro Certificati
-# Per evitare errori nell'esportazione, inserisci una password +8 char
-/ppp secret add \
-name=$USERNAME \
-password=$PASSWORD \
-profile=OVPN-Profile \
-service=ovpn;
-
-:delay 100ms;
-
-## Genero il Certificato per il Client
-/certificate add \
-name=client-template-to-issue \
-copy-from="client-template" \
-common-name="client-$USERNAME@$CN";
-
-sign client-template-to-issue \ 
-ca="$CN" \ 
-name="$USERNAME@$CN";
-
-:delay 100ms;
-
-## Esporto CA, Certificato Client e Key
-/certificate export-certificate "$CN" export-passphrase="" file-name="CA";
-
-/certificate export-certificate "$USERNAME@$CN" export-passphrase="$PASSWORD" file-name=user;
-
-
 ## Esporto OVPN File
 
-/interface ovpn-server server export-client-configuration
+/interface ovpn-server server \
+export-client-configuration ca-certificate="CA.crt" \
+client-certificate="$USERNAME@$CN.crt" \
+client-cert-key="$USERNAME@$CN.key" \
+server-address="PUBLIC_IP";
+
+# Rimuovo le Variabili Globali
+
+/system script environment remove USERNAME,PASSWORD,CN,LOC,OnlyOne,ORG,OU,OVPNDNS,OVPNGW,PORTA,RANGE,SUBNET;
+beep;
