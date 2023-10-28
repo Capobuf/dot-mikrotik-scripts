@@ -171,8 +171,10 @@
                 domain="$domainName" \
                 dns-server="$gatewayIP" \
                 gateway="$gatewayIP";
-            }on-error {:put "[ERRORE] Configurazione LAN Fallita"; :log error "Configurazione LAN Fallita"}
+            
             }
+
+            } on-error {:put "[ERRORE] Configurazione LAN Fallita"; :log error "Configurazione LAN Fallita"}
 
             :put "Abilito Richieste Remote DNS"
             /ip dns set allow-remote-requests=yes
