@@ -106,73 +106,73 @@
     }
 
     ## Configuro la LAN
+    :do {
+        :local WantConfigLAN [$requestvalue "Vuoi Configurare la LAN ora? (y/n)"]
 
-     :local WantConfigLAN [$requestvalue "Vuoi Configurare la LAN ora? (y/n)"]
+            :if ($WantConfigLAN="y" || $WantConfigLAN="yes") do={
 
-        :if ($WantConfigLAN="y" || $WantConfigLAN="yes") do={
+                :global LANSubnet [$requestvalue "Inserisci la Subnet della LAN, la subnet deve essere /24 (0.0.0.0/24):"]
+                /ip firewall address-list add \
+                list=LAN_Subnet \
+                address=$LANSubnet;
 
-            :global LANSubnet [$requestvalue "Inserisci la Subnet della LAN, la subnet deve essere /24 (0.0.0.0/24):"]
-            /ip firewall address-list add \
-            list=LAN_Subnet \
-            address=$LANSubnet;
+                /ip firewall address-list add \
+                address=$LANSubnet \
+                list=Allowed_Management;
+                
+                :put "Configuro il NAT";
 
-            /ip firewall address-list add \
-            address=$LANSubnet \
-            list=Allowed_Management;
-            
-            :put "Configuro il NAT";
+                /ip firewall nat add \
+                action=masquerade \
+                chain=srcnat \
+                comment="Masquerade x LAN" \
+                src-address-list=LAN_Subnet \
+                out-interface-list=WAN;
+                :log info "Masquerade x LAN Configurato";
 
-            /ip firewall nat add \
-            action=masquerade \
-            chain=srcnat \
-            comment="Masquerade x LAN" \
-            src-address-list=LAN_Subnet \
-            out-interface-list=WAN;
-            :log info "Masquerade x LAN Configurato";
+                ## Rimuovo il /24 e calcolo il GW e il range
+                :local baseIP [:pick $LANSubnet 0 ([:find $LANSubnet "/"])]
 
-            ## Rimuovo il /24 e calcolo il GW e il range
-            :local baseIP [:pick $LANSubnet 0 ([:find $LANSubnet "/"])]
+                :local lastOctet [:pick $baseIP ([:len $baseIP] - 1)]
+                :local gatewayLastOctet [:tostr ([:tonum $lastOctet] + 1)]
+                
+                ## es. 172.16.0.1
+                :local gatewayIP ([:pick $baseIP 0 ([:len $baseIP] - 1)] . $gatewayLastOctet)
 
-            :local lastOctet [:pick $baseIP ([:len $baseIP] - 1)]
-            :local gatewayLastOctet [:tostr ([:tonum $lastOctet] + 1)]
-            
-            ## es. 172.16.0.1
-            :local gatewayIP ([:pick $baseIP 0 ([:len $baseIP] - 1)] . $gatewayLastOctet)
+                :local startRangeIP ([:pick $baseIP 0 ([:len $baseIP] - 1)] . "2")
+                :local endRangeIP ([:pick $baseIP 0 ([:len $baseIP] - 1)] . "254")
+                ## es. 172.16.0.1/24
+                :local GwSub (:pick $gatewayIP  . "/24")
 
-            :local startRangeIP ([:pick $baseIP 0 ([:len $baseIP] - 1)] . "2")
-            :local endRangeIP ([:pick $baseIP 0 ([:len $baseIP] - 1)] . "254")
-            ## es. 172.16.0.1/24
-            :local GwSub (:pick $gatewayIP  . "/24")
+                /ip address add \
+                address=$GwSub \
+                comment="Gateway x LAN" \
+                interface=bridge_lan;
 
-            /ip address add \
-            address=$GwSub \
-            comment="Gateway x LAN" \
-            interface=bridge_lan;
+                /ip pool add \
+                name="lan_dhcp_pool" \
+                comment="Pool x DHCP Server" \
+                ranges="$startRangeIP-$endRangeIP";
 
-            /ip pool add \
-            name="lan_dhcp_pool" \
-            comment="Pool x DHCP Server" \
-            ranges="$startRangeIP-$endRangeIP";
+                :local SelLeaseTime [$requestvalue "Tempo di lease (es. gg:hh:mm / 00:00:00)?"];
 
-            :local SelLeaseTime [$requestvalue "Tempo di lease (es. gg:hh:mm / 00:00:00)?"];
+                /ip dhcp-server add \
+                address-pool=lan_dhcp_pool \
+                interface=bridge_lan \
+                name=dhcp-server-lan \
+                comment="DHCP Server x LAN"
+                lease-time="$SelLeaseTime";
 
-            /ip dhcp-server add \
-            address-pool=lan_dhcp_pool \
-            interface=bridge_lan \
-            name=dhcp-server-lan \
-            comment="DHCP Server x LAN"
-            lease-time="$SelLeaseTime";
+                :local domainName [$requestvalue "Inserisci Nome del Dominio (example.lan)"];
 
-            :local domainName [$requestvalue "Inserisci Nome del Dominio (example.lan)"];
-
-            /ip dhcp-server network add \
-            address="$LANSubnet" \
-            comment="Network x LAN" \
-            domain="$domainName" \
-            dns-server="$gatewayIP" \
-            gateway="$gatewayIP";
-
-        }
+                /ip dhcp-server network add \
+                address="$LANSubnet" \
+                comment="Network x LAN" \
+                domain="$domainName" \
+                dns-server="$gatewayIP" \
+                gateway="$gatewayIP";
+            }on-error {:put "[ERRORE] Configurazione LAN Fallita"; :log error "Configurazione LAN Fallita"}
+            }
 
             :put "Abilito Richieste Remote DNS"
             /ip dns set allow-remote-requests=yes
