@@ -1,64 +1,68 @@
-:do {
-    :global requestvalue do={:put $1 ; :return}
+:global requestvalue do={:put $1 ; :return}
 
+    ## Ciclo per fare spazio 
+:global makeSpace do={ :global count 0; :global spaceCount 50; :while ($count < $spaceCount) do={:put ""; :set count ($count + 1);}}
+
+:do {
+    $makeSpace
     :log info "[firewall-config] Script Avviato"
     
     ## Configuro l'identity
 
-    :local wantIdentity [$requestvalue "Vuoi configurare l'hostname? (y/n)"]
+    :global wantIdentity [$requestvalue "Vuoi configurare l'hostname? (y/n)"]
     :do {
         :if ($wantIdentity="y" || $wantIdentity="yes") do={
-            :local IdentName [$requestvalue "Identity:"]
+            :global IdentName [$requestvalue "Identity:"]
             /system identity set name=$IdentName;
         }
     } on-error={ :put "[ERRORE] Non sono riuscito ad impostare l'Hostname"}
 
     ## Configuro l'utente dot
-
-    :local WantdotUser [$requestvalue "Vuoi configurare l'utente dot come Admin? (y/n)"]
+    $makeSpace
+    :global WantdotUser [$requestvalue "Vuoi configurare l'utente dot come Admin? (y/n)"]
     :do {
         :if ($WantdotUser="y" || $WantdotUser="yes") do={
-            :local dotPswd [$requestvalue "Inserisci la Password per l'utente dot:"]
+            :global dotPswd [$requestvalue "Inserisci la Password per l'utente dot:"]
             /user add name=dot group=full comment="bydot.it" password=$dotPswd
         } 
     } on-error={:put "[ERRORE] Nella creazione dell'utente dot"; :log error "Impossibile creare utente dot"}
 
     ## Configuro Super
-
-    :local WantChangeAdmin [$requestvalue "Vuoi disattivare l'admin e aggiungere super? (y/n)"]
+    $makeSpace
+    :global WantChangeAdmin [$requestvalue "Vuoi disattivare l'admin e aggiungere super? (y/n)"]
 
         :if ($WantChangeAdmin="y" || $WantChangeAdmin="yes") do={
-            :local superPswd [$requestvalue "Inserisci la Password per l'utente super:"]
+            :global superPswd [$requestvalue "Inserisci la Password per l'utente super:"]
             :do {
                 /user add name=super group=full comment="Super Admin" password=$superPswd;
                 /user disable admin;
                 /user comment admin comment="Disabilitato per motivi di sicurezza - non riabilitare senza prima aver impostato una password";
                 } on-error={ :put "[ERRORE] Nella modifica degli utenti"; :log error "Ricontrollare Utenti"}
         }
- 
+    $makeSpace
     :put "Configuro il Bridge bridge_lan - Ricorda di Aggiungere le Porte!"
 
     :do {
-        interface bridge add name=bridge_lan comment="Bridge x LAN"
+        /interface bridge add name=bridge_lan comment="Bridge x LAN"
         } on-error={ :put "[ERRORE] nella configurazione del Bridge! Controlla e Riesegui lo Script!"; :return}
 
     :global WANInterface [$requestvalue "Inserisci l'interfaccia che fa da WAN [es. ether1]:"]
     :put "Hai scelto come Interfaccia WAN: $WANInterface"
-
+    
     :do {
         /interface list add name=WAN; /interface list member add interface=$WANInterface list=WAN;
         /interface ethernet set $WANInterface comment=WAN
     } on-error={ :put "[ERRORE] Configurazione Interfaccia WAN"}
-
+    $makeSpace
     # Configuro la WAN
-    :local WantConfigWAN [$requestvalue "Vuoi configurare la WAN ora? (dhcp/ppp/n)"]
-    :local cont 0;
-    :local loading #;
-
+    :global WantConfigWAN [$requestvalue "Vuoi configurare la WAN ora? (dhcp/ppp/n)"]
+    :global cont 0;
+    :global loading #;
+    $makeSpace
     :if ($WantConfigWAN="dhcp") do={
         /ip dhcp-client add interface=$WANInterface use-peer-dns=yes add-default-route=yes disabled=no;
         :delay 2s;
-        :local dhcpstat;
+        :global dhcpstat;
         while (($cont<=15) and (:global dhcpstat [ip dhcp-client get $WANInterface status] != "bound")) do={
             :put "Aspetto un lease..."
             :set dhcpstat [ip dhcp-client get bridge_wan status];
@@ -73,9 +77,9 @@
 
     if ($WantConfigWAN="ppp") do={
 
-        :local PPPoeUsername [$requestvalue "Username PPPoE:"]
-        :local PPPoePSWD [$requestvalue "Password PPPoE:"]
-        :local PPPoeName [$requestvalue "Nome della PPPoE?:"]
+        :global PPPoeUsername [$requestvalue "Username PPPoE:"]
+        :global PPPoePSWD [$requestvalue "Password PPPoE:"]
+        :global PPPoeName [$requestvalue "Nome della PPPoE?:"]
         :do {
             /interface pppoe-client add \
             name=$PPPoeName \
@@ -88,7 +92,7 @@
 
             /interface list member add interface=$PPPoeName list=WAN;
 
-            :local pppoestat;
+            :global pppoestat;
             /interface pppoe-client monitor $PPPoeName once do={:set pppoestat $status};
 
             while (($cont<=15) and (pppoestat != "connected")) do={
@@ -107,7 +111,7 @@
 
     ## Configuro la LAN
     :do {
-        :local WantConfigLAN [$requestvalue "Vuoi Configurare la LAN ora? (y/n)"]
+        :global WantConfigLAN [$requestvalue "Vuoi Configurare la LAN ora? (y/n)"]
 
             :if ($WantConfigLAN="y" || $WantConfigLAN="yes") do={
 
@@ -131,18 +135,18 @@
                 :log info "Masquerade x LAN Configurato";
 
                 ## Rimuovo il /24 e calcolo il GW e il range
-                :local baseIP [:pick $LANSubnet 0 ([:find $LANSubnet "/"])]
+                :global baseIP [:pick $LANSubnet 0 ([:find $LANSubnet "/"])]
 
-                :local lastOctet [:pick $baseIP ([:len $baseIP] - 1)]
-                :local gatewayLastOctet [:tostr ([:tonum $lastOctet] + 1)]
+                :global lastOctet [:pick $baseIP ([:len $baseIP] - 1)]
+                :global gatewayLastOctet [:tostr ([:tonum $lastOctet] + 1)]
                 
                 ## es. 172.16.0.1
-                :local gatewayIP ([:pick $baseIP 0 ([:len $baseIP] - 1)] . $gatewayLastOctet)
+                :global gatewayIP ([:pick $baseIP 0 ([:len $baseIP] - 1)] . $gatewayLastOctet)
 
-                :local startRangeIP ([:pick $baseIP 0 ([:len $baseIP] - 1)] . "2")
-                :local endRangeIP ([:pick $baseIP 0 ([:len $baseIP] - 1)] . "254")
+                :global startRangeIP ([:pick $baseIP 0 ([:len $baseIP] - 1)] . "2")
+                :global endRangeIP ([:pick $baseIP 0 ([:len $baseIP] - 1)] . "254")
                 ## es. 172.16.0.1/24
-                :local GwSub (:pick $gatewayIP  . "/24")
+                :global GwSub (:pick $gatewayIP  . "/24")
 
                 /ip address add \
                 address=$GwSub \
@@ -154,16 +158,16 @@
                 comment="Pool x DHCP Server" \
                 ranges="$startRangeIP-$endRangeIP";
 
-                :local SelLeaseTime [$requestvalue "Tempo di lease (es. gg:hh:mm / 00:00:00)?"];
+                :global SelLeaseTime [$requestvalue "Tempo di lease (es. gg:hh:mm / 00:00:00)?"];
 
                 /ip dhcp-server add \
                 address-pool=lan_dhcp_pool \
                 interface=bridge_lan \
                 name=dhcp-server-lan \
-                comment="DHCP Server x LAN"
+                comment="DHCP Server x LAN" \
                 lease-time="$SelLeaseTime";
 
-                :local domainName [$requestvalue "Inserisci Nome del Dominio (example.lan)"];
+                :global domainName [$requestvalue "Inserisci Nome del Dominio (example.lan)"];
 
                 /ip dhcp-server network add \
                 address="$LANSubnet" \
@@ -186,13 +190,13 @@
     
     #### Configuro il Firewall
 
-    :local ShutService [$requestvalue "Spengo tutti i Servizi TRANNE SSH e Winbox? (y/n)"]
+    :global ShutService [$requestvalue "Spengo tutti i Servizi TRANNE SSH e Winbox? (y/n)"]
     :if ((ShutService=y) || (ShutService=yes)) do={/ip service disable api,ftp,telnet,www,www-ssl,api-ssl}
 
-    :local SipALGOff [$requestvalue "Spengo il SIP ALG? (y/n)"]
+    :global SipALGOff [$requestvalue "Spengo il SIP ALG? (y/n)"]
     :if ((SipALGOff=y) || (SipALGOff=yes)) do={/ip firewall service-port disable sip}
 
-    :local WantDimensioneVoipEsclusion [$requestvalue "Aggiungo voip.dimensione.com come esclusione? (y/n)"]
+    :global WantDimensioneVoipEsclusion [$requestvalue "Aggiungo voip.dimensione.com come esclusione? (y/n)"]
     :if (($WantDimensioneVoipEsclusion=y) || ($WantDimensioneVoipEsclusion=yes)) do={
         
         /ip firewall address-list add \
@@ -211,7 +215,7 @@
         
         }
 
-    :local InstLightBlack [$requestvalue "Installo la Blacklist Light? (y/n)"];
+    :global InstLightBlack [$requestvalue "Installo la Blacklist Light? (y/n)"];
     :if ((InstLightBlack=y) || (InstLightBlack=yes)) do={
         :do {
             /system script add \
@@ -297,7 +301,7 @@
         dst-port=161,500,4500 protocol=udp;
     }
 
-    :local yesOpenVPN [$requestvalue "Inserisco la Regola in INPUT per OPENVPN? (y/n)"]
+    :global yesOpenVPN [$requestvalue "Inserisco la Regola in INPUT per OPENVPN? (y/n)"]
     :if (($yesOpenVPN="y") || ($yesOpenVPN="yes")) do={
 
         /ip firewall filter add \
