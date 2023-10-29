@@ -34,9 +34,10 @@
     $makeSpace
 
     :global anotherVLAN true;
-    :global InfoOk true;
+    
 
     :while ($anotherVLAN=true) do={
+        :global InfoOk true;
 
         :while ($InfoOk=true) do={
             $makeSpace
@@ -156,6 +157,7 @@
             :put "## $GwSub aggiunto come Indirizzo a $VLANFullName"; :log warning "$GwSub aggiunto come Indirizzo a $VLANFullName";
 
             :global vlanPoolName [($VLANFullName . "-dhcp-pool")]
+            :global dhcpServerName [[($VLANShortName . "-dhcp-server")]]
             
 
             /ip pool add \
@@ -168,7 +170,7 @@
             /ip dhcp-server add \
             address-pool=$vlanPoolName \
             interface=$VLANFullName \
-            name=[$VLANShortName . "-server-lan"] \
+            name=[($VLANShortName . "-dhcp-server")] \
             comment="DHCP Server x $VLANFullName" \
             lease-time="$SelLeaseTime";
             :put "## DHCP Server x $VLANFullName creato"; :log warning "DHCP Server x $VLANFullName creato"; :put "";
@@ -178,7 +180,7 @@
             address="$VLANSubnet" \
             comment="Network x $VLANFullName" \
             domain="$domainName" \
-            dns-server="$gatewayIP" \
+            dns-server="$gatewayIP",8.8.8.8 \
             gateway="$gatewayIP";
             :log warning "## Network x $VLANFullName creato"; :put "";
 
