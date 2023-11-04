@@ -85,7 +85,7 @@ ca="$CN" \
 
 name="$USERNAME@$CN";
 
-:delay 100ms;
+:delay 1s;
 
 ## Esporto CA, Certificato Client e Key
 /certificate export-certificate "$CN" export-passphrase="" file-name="CA";
