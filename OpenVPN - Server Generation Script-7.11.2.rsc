@@ -1,7 +1,7 @@
 # OpenVPN Server Setup Generation Script
 
 :global LOC "Campobasso"
-:global ORG "Rock Inc"
+:global ORG "Nome Azienda"
 :global OU "IT"
 :global PORTA "2005"
 :global SUBNET "10.100.55.0/24"
@@ -9,10 +9,10 @@
 :global OVPNGW "10.100.55.1"
 :global OVPNDNS "10.100.55.1"
 :global OnlyOne "no"
-:global CN "CBPAGLIA-01"
-:global USERNAME "franco"
+:global CN "ROUTER_NAME"
+:global USERNAME "utente"
 # La Password deve essere di almeno 8 caratteri!
-:global PASSWORD "roccorocco"
+:global PASSWORD "password"
 
 ## Genero la CA
 /certificate add \
@@ -30,7 +30,7 @@ key-usage=crl-sign,key-cert-sign;
 ca-crl-host=127.0.0.1 \
 name=$CN;
 
-:delay 100ms;
+:delay 2s;
 
 ## Genero il Certificato Server
 /certificate add \
@@ -49,7 +49,7 @@ server-template \
 ca="$CN" \
 name="server@$CN";
 
-:delay 100ms;
+:delay 2s;
 
 ## Genero il Template per il Client
 /certificate add \
@@ -63,16 +63,7 @@ common-name="client" \
 days-valid=3650 \
 key-usage=tls-client;
 
-:delay 100ms;
-
-# Genero gli Utenti e i loro Certificati
-/ppp secret add \
-name="$USERNAME" \
-password="$PASSWORD" \
-profile=OVPN-Profile \
-service=ovpn;
-
-:delay 100ms;
+:delay 2s;
 
 ## Genero il Certificato per il Client
 /certificate add \
@@ -85,7 +76,7 @@ ca="$CN" \
 
 name="$USERNAME@$CN";
 
-:delay 1s;
+:delay 2s;
 
 ## Esporto CA, Certificato Client e Key
 /certificate export-certificate "$CN" export-passphrase="" file-name="CA";
@@ -125,13 +116,19 @@ comment="Masquerade x OpenVPN" \
 src-address-list=OpenVPN_Subnet;
 
 ## Creo il Profilo PPP
-/ppp profile add \
+/ppp profile add name="OVPN-Profile" \
 dns-server=$OVPNDNS \
 local-address=$OVPNGW \
-name=OVPN-Profile \
 remote-address=OVPN-Pool \
 use-encryption=yes \
 only-one=$OnlyOne;
+
+# Genero l'Utente
+/ppp secret add \
+name="$USERNAME" \
+password="$PASSWORD" \
+profile=OVPN-Profile \
+service=ovpn;
 
 ## Configuro il Server OpenVPN
 /interface ovpn-server server set \
