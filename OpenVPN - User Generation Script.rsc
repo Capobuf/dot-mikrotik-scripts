@@ -1,5 +1,5 @@
 # Inserisci lo Stesso CN inserito quando hai fatto il Server!
-:global CN "CBPAGLIA-01"
+:global CN "CN-NAME"
 :global USERNAME "username"
 :global PASSWORD "password"
 
@@ -26,8 +26,7 @@ name="$USERNAME@$CN";
 :delay 100ms;
 
 ## Esporto i Certificati e la Chiave per il Client
-/certificate \
-export-certificate "$USERNAME@$CN" \
+/certificate export-certificate "$USERNAME@$CN" \
 export-passphrase="$PASSWORD" \
 file-name="$USERNAME@$CN";
 
