@@ -1,6 +1,6 @@
 # Inserisci lo Stesso CN inserito quando hai fatto il Server!
 :global CN "CN-NAME"
-:global USERNAME "username"
+:global USERNAME "utente"
 :global PASSWORD "password"
 
 # Genero gli Utenti e i loro Certificati
@@ -11,7 +11,7 @@ password="$PASSWORD" \
 profile=OVPN-Profile \
 service=ovpn;
 
-:delay 100ms;
+:delay 1s;
 
 ## Genero il Certificato per il Client
 /certificate add \
@@ -23,14 +23,14 @@ common-name="client-$USERNAME@$CN";
 ca="$CN" \
 name="$USERNAME@$CN";
 
-:delay 100ms;
+:delay 1s;
 
 ## Esporto i Certificati e la Chiave per il Client
 /certificate export-certificate "$USERNAME@$CN" \
 export-passphrase="$PASSWORD" \
 file-name="$USERNAME@$CN";
 
-:delay 200ms;
+:delay 1s;
 
 ## Esporto OVPN File
 
