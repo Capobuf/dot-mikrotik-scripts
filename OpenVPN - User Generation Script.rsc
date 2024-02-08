@@ -1,7 +1,8 @@
 # Inserisci lo Stesso CN inserito quando hai fatto il Server!
-:global CN "CN-NAME"
-:global USERNAME "utente"
-:global PASSWORD "password"
+:global CN "INSERT-CN"
+:global USERNAME "INSERT-USERNAME"
+:global PASSWORD "INSERT-PASSWORD"
+:global PUBLICIP "INSERT-IP"
 
 # Genero gli Utenti e i loro Certificati
 # Per evitare errori nell'esportazione, inserisci una password +8 char
@@ -38,9 +39,9 @@ file-name="$USERNAME@$CN";
 export-client-configuration ca-certificate="CA.crt" \
 client-certificate="$USERNAME@$CN.crt" \
 client-cert-key="$USERNAME@$CN.key" \
-server-address="PUBLIC_IP";
+server-address="$PUBLICIP";
 
 # Rimuovo le Variabili Globali
 
-/system script environment remove USERNAME,PASSWORD,CN;
+/system script environment remove USERNAME,PASSWORD,CN,PUBLICIP;
 beep;
