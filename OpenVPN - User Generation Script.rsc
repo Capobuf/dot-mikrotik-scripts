@@ -39,8 +39,7 @@ file-name="$USERNAME@$CN";
 export-client-configuration ca-certificate="CA.crt" \
 client-certificate="$USERNAME@$CN.crt" \
 client-cert-key="$USERNAME@$CN.key" \
-server-address="$PUBLICIP" \
-file="$USERNAME@$CN.ovpn";
+server-address="$PUBLICIP";
 
 # Rimuovo le Variabili Globali
 
