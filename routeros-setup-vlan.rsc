@@ -180,7 +180,7 @@
             address="$VLANSubnet" \
             comment="Network x $VLANFullName" \
             domain="$domainName" \
-            dns-server="$gatewayIP",8.8.8.8 \
+            dns-server="$gatewayIP" \
             gateway="$gatewayIP";
             :log warning "## Network x $VLANFullName creato"; :put "";
 
