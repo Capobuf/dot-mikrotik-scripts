@@ -146,9 +146,8 @@ require-client-certificate=yes;
 ca-certificate="CA.crt" \
 client-certificate="client@$CN.crt" \
 client-cert-key="client@$CN.key" \
-server=OVPN_Server
+server=OVPN_Server \
 server-address="PUBLIC_IP";
-file=all@$ORG;
 
 
 ## Rimuovo gli environment
