@@ -142,11 +142,14 @@ mode=ip \
 require-client-certificate=yes;
 
 ## Esporto OVPN File
-/interface ovpn-server server \
-export-client-configuration ca-certificate="CA.crt" \
+/interface ovpn-server server export-client-configuration \
+ca-certificate="CA.crt" \
 client-certificate="client@$CN.crt" \
 client-cert-key="client@$CN.key" \
+server=OVPN_Server
 server-address="PUBLIC_IP";
+file=all@$ORG;
+
 
 ## Rimuovo gli environment
 /system script environment remove [find];
