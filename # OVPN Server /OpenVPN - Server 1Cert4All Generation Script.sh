@@ -1,15 +1,15 @@
 # OVPN Server / One Cert 4 All
-:global LOC "Campobasso"
-:global ORG "Nome Azienda"
+:global LOC "Localita"
+:global ORG "Azienda"
 :global OU "IT"
 :global PORTA "2005"
 :global SUBNET "10.100.55.0/24"
-:global RANGE "10.100.55.10-10.100.55.25"
+:global RANGE "10.100.55.10-10.100.55.100"
 :global OVPNGW "10.100.55.1"
 :global OVPNDNS "10.100.55.1"
 :global OnlyOne "no"
-:global CN "ROUTER_NAME"
-:global PASSWORD "password"
+:global CN "RouterName"
+:global PASSWORD "Password-Private-Key"
 
 ## Genero la CA
 /certificate add \
@@ -126,16 +126,19 @@ service=ovpn;
 
 ## Configuro il Server OpenVPN
 /interface ovpn-server server set \
-auth=sha1,sha256 \
+auth=sha1,sha256,sha512 \
 certificate="server@$CN" \
 cipher=aes128-cbc,aes192-gcm,aes256-gcm,aes256-cbc \
 default-profile=OVPN-Profile \
-enabled=yes \
 keepalive-timeout=7200 \
-mac-address=00:00:00:00:00:00 \
 max-mtu=1500 \
 port="$PORTA" \
 protocol=udp \
+disabled=no \
+name=OVPN_Server \
+enable-tun-ipv6=no \
+numbers=0 \
+mode=ip \
 require-client-certificate=yes;
 
 ## Esporto OVPN File
